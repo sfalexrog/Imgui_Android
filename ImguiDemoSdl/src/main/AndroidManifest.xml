@@ -10,7 +10,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
         <activity android:name=".DemoActivity"
             android:configChanges="orientation">
             <intent-filter>
