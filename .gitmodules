@@ -1,0 +1,10 @@
+[submodule "ImguiDemoSdl/src/main/cpp/deps/imgui"]
+	path = ImguiDemoSdl/src/main/cpp/deps/imgui
+	url = https://github.com/ocornut/imgui
+[submodule "ImguiDemoSdl/src/main/cpp/deps/glm"]
+	path = ImguiDemoSdl/src/main/cpp/deps/glm
+	url = https://github.com/g-truc/glm
+[submodule "ImguiDemoSdl/src/main/cpp/deps/SDL"]
+	path = ImguiDemoSdl/src/main/cpp/deps/SDL
+	url = https://github.com/sfalexrog/SDL
+	branch = cmake_fixes
