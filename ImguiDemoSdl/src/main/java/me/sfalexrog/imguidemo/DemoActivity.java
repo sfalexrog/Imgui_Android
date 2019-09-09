@@ -33,7 +33,7 @@ public class DemoActivity extends SDLActivity {
 
     @Override
     protected String[] getLibraries() {
-        return new String[]{"demo"};
+        return new String[]{"hidapi", "SDL2", "demo"};
     }
 
     @Override

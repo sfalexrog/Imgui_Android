@@ -106,7 +106,7 @@ if (ANDROID)
     # in ${}, but you can't specify a variable name without ${},
     # so here's a little hack to make ${target_name} behave like
     # it should.
-	set(SDL2_LIBRARY SDL2-static SDL2main)
+	set(SDL2_LIBRARY SDL2 SDL2main)
 	set(SDL2_INCLUDE_DIR ${_SDL2_PROJECT_DIR}/include)
 
 else()
