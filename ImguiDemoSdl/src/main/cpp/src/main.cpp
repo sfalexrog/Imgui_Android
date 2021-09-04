@@ -5,33 +5,25 @@
 
 #ifdef __ANDROID__
 #include <GLES2/gl2.h>
-#include "imgui_impl_sdl_es2.h"
-#include "imgui_impl_sdl_es3.h"
 #else
 #include "gl_glcore_3_3.h"
-#include "imgui_impl_sdl_gl3.h"
 #endif
 #include "teapot.h"
 
+#include "imgui_impl_sdl.h"
+#include "imgui_impl_opengl3.h"
+
 #include <unistd.h>
 #include <dirent.h>
+
+/* Shader version definition for dear imgui */
+const char* imguiShaderVersions = nullptr;
 
 /**
  * A convenience function to create a context for the specified window
  * @param w Pointer to SDL_Window
  * @return An SDL_Context value
  */
-
-typedef bool(initImgui_t)(SDL_Window*);
-typedef bool(processEvent_t)(SDL_Event*);
-typedef void(newFrame_t)(SDL_Window*);
-typedef void(shutdown_t)();
-
-static initImgui_t *initImgui;
-static processEvent_t *processEvent;
-static newFrame_t *newFrame;
-static shutdown_t *shutdown;
-
 static SDL_GLContext createCtx(SDL_Window *w)
 {
     // Prepare and create context
@@ -93,26 +85,15 @@ static SDL_GLContext createCtx(SDL_Window *w)
     if (major == 3)
     {
         Log(LOG_INFO) << "Initializing ImGui for GLES3";
-        initImgui = ImGui_ImplSdlGLES3_Init;
-        Log(LOG_INFO) << "Setting processEvent and newFrame functions appropriately";
-        processEvent = ImGui_ImplSdlGLES3_ProcessEvent;
-        newFrame = ImGui_ImplSdlGLES3_NewFrame;
-        shutdown = ImGui_ImplSdlGLES3_Shutdown;
+        imguiShaderVersions = "#version 300 es";
     }
     else
     {
         Log(LOG_INFO) << "Initializing ImGui for GLES2";
-        initImgui = ImGui_ImplSdlGLES2_Init;
-        Log(LOG_INFO) << "Setting processEvent and newFrame functions appropriately";
-        processEvent = ImGui_ImplSdlGLES2_ProcessEvent;
-        newFrame = ImGui_ImplSdlGLES2_NewFrame;
-        shutdown = ImGui_ImplSdlGLES2_Shutdown;
+        imguiShaderVersions = "#version 100";
     }
 #else
-    initImgui = ImGui_ImplSdlGL3_Init;
-    processEvent = ImGui_ImplSdlGL3_ProcessEvent;
-    newFrame = ImGui_ImplSdlGL3_NewFrame;
-    shutdown = ImGui_ImplSdlGL3_Shutdown;
+    imguiShaderVersions = "#version 330 core";
 #endif
     Log(LOG_INFO) << "Finished initialization";
     return ctx;
@@ -148,7 +129,13 @@ int main(int argc, char** argv)
     Log(LOG_INFO) << "Creating SDL_Window";
     SDL_Window *window = SDL_CreateWindow("Demo App", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 800, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     SDL_GLContext ctx = createCtx(window);
-    initImgui(window);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui_ImplSDL2_InitForOpenGL(window, ctx);
+    ImGui_ImplOpenGL3_Init(imguiShaderVersions); // Select proper OpenGL version automagically
+
+    ImGui::StyleColorsDark();
 
     // Load Fonts
     // (there is a default font, this is only if you want to change it. see extra_fonts/README.txt for more details)
@@ -185,7 +172,7 @@ int main(int argc, char** argv)
             float deltaZoom = 0.0f;
 
             while (SDL_PollEvent(&e)) {
-                bool handledByImGui = processEvent(&e);
+                bool handledByImGui = ImGui_ImplSDL2_ProcessEvent(&e);
                 {
                     switch (e.type) {
                         case SDL_QUIT:
@@ -221,7 +208,9 @@ int main(int argc, char** argv)
             } else {
                 SDL_StopTextInput();
             }
-            newFrame(window);
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplSDL2_NewFrame();
+            ImGui::NewFrame();
             // 1. Show a simple window
             // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
             {
@@ -237,7 +226,7 @@ int main(int argc, char** argv)
 
             // 2. Show another simple window, this time using an explicit Begin/End pair
             if (show_another_window) {
-                ImGui::SetNextWindowSize(ImVec2(200, 100), ImGuiSetCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2(200, 100), ImGuiCond_FirstUseEver);
                 ImGui::Begin("Another Window", &show_another_window);
                 ImGui::Text("Hello");
                 ImGui::End();
@@ -245,8 +234,8 @@ int main(int argc, char** argv)
 
             // 3. Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
             if (show_test_window) {
-                ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-                ImGui::ShowTestWindow(&show_test_window);
+                ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
+                ImGui::ShowDemoWindow(&show_test_window);
             }
 
             // 4. Show some controls for the teapot
@@ -268,7 +257,7 @@ int main(int argc, char** argv)
             if (rotateSync)
                 teapot.rotateCameraTo(teapotRotation);
 
-            if (!ImGui::IsMouseHoveringAnyWindow())
+            if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
             {
                 if (std::abs(deltaZoom) > 0.001f)
                     teapot.zoomBy(deltaZoom);
@@ -277,10 +266,10 @@ int main(int argc, char** argv)
             }
             teapot.draw();
             ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             SDL_GL_SwapWindow(window);
         }
     }
-    shutdown();
     SDL_GL_DeleteContext(ctx);
     SDL_Quit();
     return 0;

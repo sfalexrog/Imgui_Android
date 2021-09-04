@@ -2,7 +2,8 @@
 # The aim here is to have most of the stuff (including cmake files)
 # be the same throughout platforms.
 
-cmake_minimum_required(VERSION 3.1)
+# target_link_options appeared in 3.13, and is extremely recommended for Android builds
+cmake_minimum_required(VERSION 3.13)
 
 project(imgui_demo)
 
@@ -24,47 +25,60 @@ set(IMGUI_IMPL_PATH src/imgui_impl)
 
 add_subdirectory(deps/glm)
 
-# Use GLES2/GLES3 implementations for Android, GL3 for everything else
-
+# Declare the proper type of target. We'll add sources later.
 if (ANDROID)
-    set(GL_PROFILES "GL_PROFILE_GLES2" "GL_PROFILE_GLES3")
+    add_library(demo SHARED)
+    target_link_options(demo PRIVATE
+            -Wl,--no-undefined)
+    target_link_libraries(demo PRIVATE
+            GLESv2
+            log
+            )
 else()
-    set(GL_PROFILES "GL_PROFILE_GL3")
+    add_executable(demo)
 endif()
 
-file(GLOB IMGUI_FILES
-    ${IMGUI_PATH}/*.cpp
-    ${IMGUI_IMPL_PATH}/*.cpp
-)
 
-file(GLOB DEMO_FILES
-    src/*.cpp
-)
+# Use GLES2/GLES3 implementations for Android, GL3 for everything else
+# We'll get ImGui implementations straight from ImGui distribution
+
+target_sources(demo PRIVATE
+    deps/imgui/imgui.cpp
+    deps/imgui/imgui_demo.cpp
+    deps/imgui/imgui_draw.cpp
+    deps/imgui/imgui_tables.cpp
+    deps/imgui/imgui_widgets.cpp)
+
+target_include_directories(demo PRIVATE
+        deps/imgui)
+
+target_sources(demo PRIVATE
+    deps/imgui/backends/imgui_impl_opengl3.cpp
+    deps/imgui/backends/imgui_impl_sdl.cpp)
+
+target_include_directories(demo PRIVATE
+    deps/imgui/backends)
+
+if (ANDROID)
+    target_compile_definitions(demo PRIVATE "GL_PROFILE_GLES2" "GL_PROFILE_GLES3" "IMGUI_IMPL_OPENGL_ES2")
+else()
+    target_compile_definitions(demo PRIVATE "GL_PROFILE_GL3")
+endif()
+
+
+target_sources(demo PRIVATE
+        src/main.cpp
+        src/teapot.cpp)
 
 if (NOT ANDROID)
-    set(GLLOAD_PATH src/glload)
-    file(GLOB GLLOAD_FILES
-            ${GLLOAD_PATH}/*.c)
+    target_sources(demo PRIVATE
+            src/glload/gl_glcore_3_3.c)
+    target_include_directories(demo PRIVATE
+            src/glload)
 endif()
 
 
 set(DEMO_SOURCES ${IMGUI_FILES} ${DEMO_FILES} ${GLLOAD_FILES})
 
-# Build as a library for Android, as an executable otherwise
-
-if (ANDROID)
-    add_library(demo SHARED
-        ${DEMO_SOURCES}
-    )
-else()
-    add_executable(demo
-        ${DEMO_SOURCES}
-    )
-endif()
-
-target_link_libraries(demo ${SDL2_LIBRARY} glm GLESv2)
+target_link_libraries(demo PRIVATE ${SDL2_LIBRARY} glm GLESv2)
 target_include_directories(demo PRIVATE ${SDL2_INCLUDE_DIR})
-target_include_directories(demo PRIVATE ${IMGUI_PATH})
-target_include_directories(demo PRIVATE ${IMGUI_IMPL_PATH})
-target_include_directories(demo PRIVATE ${GLLOAD_PATH})
-target_compile_definitions(demo PRIVATE ${GL_PROFILES})
