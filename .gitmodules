@@ -6,5 +6,5 @@
 	url = https://github.com/g-truc/glm
 [submodule "ImguiDemoSdl/src/main/cpp/deps/SDL"]
 	path = ImguiDemoSdl/src/main/cpp/deps/SDL
-	url = https://github.com/sfalexrog/SDL
-	branch = cmake_fixes
+	url = https://github.com/libsdl-org/SDL
+
